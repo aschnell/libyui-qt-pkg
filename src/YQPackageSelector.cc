@@ -53,6 +53,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 #include <fstream>
+// find_if
+#include <algorithm>
 #include <boost/bind.hpp>
 
 #include <QHBoxLayout>
@@ -137,6 +139,7 @@ using std::pair;
 #define OPTION_AUTO_CHECK               "PKGMGR_AUTO_CHECK"
 #define OPTION_RECOMMENDED              "PKGMGR_RECOMMENDED"
 
+bool service_present();
 
 YQPackageSelector::YQPackageSelector( YWidget *		parent,
 				      long		modeFlags )
@@ -412,6 +415,14 @@ YQPackageSelector::layoutFilters( QWidget *parent )
     connect(this, SIGNAL(refresh()), this, SLOT(updateRepositoryUpgradeLabel()));
     connect(_filters, &YQPkgFilterTab::currentChanged,
             this,     &YQPackageSelector::updateRepositoryUpgradeLabel );
+
+
+	// Services view - only if a service is present
+	if (service_present())
+	{
+		// FIXME: implement the correct filterview here
+		// _filters->addPage( _( "&Services" ), _serviceFilterView, "services" );
+	}
 
     //
     // Package search view
@@ -1829,6 +1840,21 @@ YQPackageSelector::saveCommonSettings()
     {
         yuiError() << "Writing " << PATH_TO_YAST_SYSCONFIG << " failed" << std::endl;
     }
+}
+
+// check if a libzypp service is present
+bool service_present()
+{
+	// TODO: requires C++14
+	// auto f = std::find_if(ZyppRepositoriesBegin(), ZyppRepositoriesEnd(), [&](const auto& repo) {
+	auto f = std::find_if(ZyppRepositoriesBegin(), ZyppRepositoriesEnd(), [&](const zypp::Repository& repo) {
+		// if the repository does not belong to any service then the service name is empty
+		return !repo.info().service().empty();
+	});
+	
+	bool ret = (f != ZyppRepositoriesEnd());
+	yuiMilestone() << "Found a libzypp service: " << ret << std::endl;
+	return ret;
 }
 
 #include "YQPackageSelector.moc"
